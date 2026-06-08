@@ -3,14 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  Box, Typography, TextField, Button, Chip, Divider,
+  Box, Typography, TextField, Button, Chip,
   CircularProgress, Alert, Stack, Dialog, DialogTitle,
-  DialogContent, DialogActions, Grid,
+  DialogContent, DialogActions,
 } from '@mui/material';
 import {
   ArrowBackOutlined, CheckCircleOutline,
   CancelOutlined, ScheduleOutlined, SaveOutlined,
-  OpenInNewOutlined,
+  OpenInNewOutlined, AutoAwesomeOutlined,
 } from '@mui/icons-material';
 import api from '@/utils/api';
 
@@ -29,6 +29,20 @@ const FIELD_LABELS = {
   recommendedAction: 'Recommended Action',
 };
 
+const CATEGORY_COLORS = {
+  news_intelligence: '#0DC8FF',
+  architecture_insights: '#9060FF',
+  performance_signals: '#00E5AA',
+  ecosystem_signals: '#FFB340',
+};
+
+const STATUS_COLORS = {
+  pending: 'default',
+  approved: 'success',
+  rejected: 'error',
+  scheduled: 'info',
+};
+
 export default function PostEditorPage() {
   const { uuid } = useParams();
   const router = useRouter();
@@ -42,6 +56,7 @@ export default function PostEditorPage() {
   const [success, setSuccess] = useState('');
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     api.get(`/api/admin/posts/${uuid}`)
@@ -88,10 +103,22 @@ export default function PostEditorPage() {
     setScheduleOpen(false);
   };
 
+  const handleGenerateBlog = async () => {
+    setGenerating(true);
+    setError('');
+    try {
+      const { data } = await api.post(`/api/admin/posts/${uuid}/generate-blog`);
+      router.push(`/admin/blog/${data.post.uuid}`);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Blog generation failed.');
+      setGenerating(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" mt={10}>
-        <CircularProgress />
+        <CircularProgress size={32} thickness={2} sx={{ color: 'primary.main' }} />
       </Box>
     );
   }
@@ -100,107 +127,198 @@ export default function PostEditorPage() {
     return <Alert severity="error">{error}</Alert>;
   }
 
+  const score = parseFloat(post.relevanceScore);
+
   return (
     <Box maxWidth={860}>
-      <Box display="flex" alignItems="center" gap={1.5} mb={3}>
-        <Button
-          startIcon={<ArrowBackOutlined />}
-          onClick={() => router.push('/admin/posts')}
-          size="small"
-          sx={{ color: 'text.secondary' }}
-        >
-          Posts
-        </Button>
-        <Divider orientation="vertical" flexItem />
-        <Chip
-          label={post.status}
-          size="small"
-          color={
-            post.status === 'approved' ? 'success' :
-            post.status === 'rejected' ? 'error' :
-            post.status === 'scheduled' ? 'info' : 'default'
-          }
-          sx={{ textTransform: 'capitalize' }}
-        />
-        <Chip
-          label={post.category?.replace(/_/g, ' ')}
-          size="small"
-          variant="outlined"
-          sx={{ textTransform: 'capitalize', fontSize: 11 }}
-        />
-        <Chip
-          label={`Score: ${post.relevanceScore?.toFixed(2)}`}
-          size="small"
-          variant="outlined"
-          color={post.relevanceScore >= 0.7 ? 'success' : 'warning'}
-        />
-        {post.sourceUrl && (
+      {/* Page header */}
+      <Box mb={3.5}>
+        <Box display="flex" alignItems="center" gap={1} mb={1.5}>
           <Button
-            href={post.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            startIcon={<ArrowBackOutlined />}
+            onClick={() => router.push('/admin/posts')}
             size="small"
-            endIcon={<OpenInNewOutlined fontSize="inherit" />}
-            sx={{ ml: 'auto', color: 'text.secondary', fontSize: 12 }}
+            sx={{
+              color: 'rgba(255,255,255,0.4)',
+              '&:hover': { color: 'text.primary' },
+              minWidth: 0,
+              px: 1,
+              fontFamily: 'var(--font-jetbrains)',
+              fontSize: '11px',
+              letterSpacing: '0.04em',
+            }}
           >
-            Source
+            POSTS
           </Button>
-        )}
-      </Box>
-
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-
-      <Stack spacing={2.5}>
-        {/* Category selector */}
-        <Box>
-          <Typography variant="caption" color="text.secondary" mb={1} display="block">
-            Category
+          <Typography sx={{ color: 'rgba(255,255,255,0.2)', fontSize: '12px' }}>/</Typography>
+          <Typography
+            sx={{
+              fontSize: '11px',
+              color: 'rgba(255,255,255,0.35)',
+              fontFamily: 'var(--font-jetbrains)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {uuid.slice(0, 8).toUpperCase()}
           </Typography>
-          <Box display="flex" gap={1} flexWrap="wrap">
-            {CATEGORY_OPTIONS.map((cat) => (
-              <Chip
-                key={cat}
-                label={cat.replace(/_/g, ' ')}
-                onClick={() => setForm((f) => ({ ...f, category: cat }))}
-                variant={form.category === cat ? 'filled' : 'outlined'}
-                color={form.category === cat ? 'primary' : 'default'}
-                size="small"
-                sx={{ cursor: 'pointer', textTransform: 'capitalize', fontSize: 11 }}
-              />
-            ))}
-          </Box>
         </Box>
 
-        {/* Editable fields */}
-        {Object.entries(FIELD_LABELS).map(([field, label]) => (
-          <TextField
-            key={field}
-            label={label}
-            value={form[field] || ''}
-            onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
-            multiline={field !== 'headline'}
-            minRows={field === 'headline' ? 1 : 3}
-            maxRows={12}
-            fullWidth
-            size="small"
-            slotProps={{
-              inputLabel: { shrink: true },
+        <Box display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
+          <Typography
+            variant="subtitle2"
+            sx={{ color: 'primary.main', fontFamily: 'var(--font-jetbrains)', letterSpacing: '0.1em' }}
+          >
+            CONTENT PIPELINE
+          </Typography>
+          <Box
+            sx={{
+              height: '14px',
+              width: '1px',
+              background: 'rgba(255,255,255,0.12)',
             }}
           />
-        ))}
-      </Stack>
+          <Chip
+            label={post.status}
+            size="small"
+            color={STATUS_COLORS[post.status] || 'default'}
+            sx={{ textTransform: 'capitalize', height: 20, fontSize: '11px' }}
+          />
+          {post.category && (
+            <Chip
+              label={post.category.replace(/_/g, ' ')}
+              size="small"
+              variant="outlined"
+              sx={{
+                textTransform: 'capitalize',
+                fontSize: '11px',
+                height: 20,
+                borderColor: CATEGORY_COLORS[post.category] || 'rgba(255,255,255,0.15)',
+                color: CATEGORY_COLORS[post.category] || 'text.secondary',
+              }}
+            />
+          )}
+          <Chip
+            label={`Score ${isNaN(score) ? '—' : score.toFixed(2)}`}
+            size="small"
+            variant="outlined"
+            color={score >= 0.7 ? 'success' : score >= 0.5 ? 'warning' : 'default'}
+            sx={{ height: 20, fontSize: '11px', fontFamily: 'var(--font-jetbrains)' }}
+          />
+          {post.sourceUrl && (
+            <Button
+              href={post.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              size="small"
+              endIcon={<OpenInNewOutlined sx={{ fontSize: '12px !important' }} />}
+              sx={{
+                ml: 'auto',
+                color: 'rgba(255,255,255,0.35)',
+                fontSize: '11px',
+                fontFamily: 'var(--font-jetbrains)',
+                letterSpacing: '0.04em',
+                '&:hover': { color: 'primary.main' },
+              }}
+            >
+              SOURCE
+            </Button>
+          )}
+        </Box>
+      </Box>
+
+      {error && <Alert severity="error" sx={{ mb: 2.5 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2.5 }}>{success}</Alert>}
+
+      {/* Editor glass card */}
+      <Box
+        sx={{
+          background: 'rgba(255,255,255,0.025)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: '14px',
+          p: 3,
+          mb: 2,
+        }}
+      >
+        <Stack spacing={2.5}>
+          {/* Category selector */}
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'rgba(255,255,255,0.35)',
+                fontFamily: 'var(--font-jetbrains)',
+                fontSize: '10px',
+                letterSpacing: '0.08em',
+                display: 'block',
+                mb: 1.25,
+              }}
+            >
+              CATEGORY
+            </Typography>
+            <Box display="flex" gap={1} flexWrap="wrap">
+              {CATEGORY_OPTIONS.map((cat) => {
+                const active = form.category === cat;
+                return (
+                  <Chip
+                    key={cat}
+                    label={cat.replace(/_/g, ' ')}
+                    onClick={() => setForm((f) => ({ ...f, category: cat }))}
+                    size="small"
+                    sx={{
+                      cursor: 'pointer',
+                      textTransform: 'capitalize',
+                      fontSize: '11px',
+                      transition: 'all 0.18s ease',
+                      ...(active ? {
+                        background: `${CATEGORY_COLORS[cat]}18`,
+                        border: `1px solid ${CATEGORY_COLORS[cat]}55`,
+                        color: CATEGORY_COLORS[cat],
+                      } : {
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        color: 'rgba(255,255,255,0.4)',
+                        '&:hover': {
+                          background: 'rgba(255,255,255,0.07)',
+                          borderColor: 'rgba(255,255,255,0.14)',
+                          color: 'rgba(255,255,255,0.7)',
+                        },
+                      }),
+                    }}
+                  />
+                );
+              })}
+            </Box>
+          </Box>
+
+          {/* Editable fields */}
+          {Object.entries(FIELD_LABELS).map(([field, label]) => (
+            <TextField
+              key={field}
+              label={label}
+              value={form[field] || ''}
+              onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+              multiline={field !== 'headline'}
+              minRows={field === 'headline' ? 1 : 3}
+              maxRows={12}
+              fullWidth
+              size="small"
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          ))}
+        </Stack>
+      </Box>
 
       {/* Action bar */}
       <Box
-        mt={3}
-        pt={3}
-        borderTop="1px solid"
-        sx={{ borderColor: 'divider' }}
-        display="flex"
-        gap={1.5}
-        flexWrap="wrap"
-        alignItems="center"
+        sx={{
+          display: 'flex',
+          gap: 1.5,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          pt: 2,
+        }}
       >
         <Button
           variant="contained"
@@ -251,6 +369,24 @@ export default function PostEditorPage() {
             Schedule
           </Button>
         )}
+
+        <Button
+          variant="outlined"
+          startIcon={generating ? <CircularProgress size={16} color="inherit" /> : <AutoAwesomeOutlined />}
+          onClick={handleGenerateBlog}
+          disabled={generating || saving || !!actionLoading}
+          sx={{
+            ml: 'auto',
+            borderColor: 'rgba(112,64,255,0.4)',
+            color: '#9060FF',
+            '&:hover': {
+              borderColor: 'rgba(112,64,255,0.7)',
+              background: 'rgba(112,64,255,0.08)',
+            },
+          }}
+        >
+          {generating ? 'Generating…' : 'Generate Blog Post'}
+        </Button>
       </Box>
 
       {/* Schedule dialog */}
@@ -268,12 +404,13 @@ export default function PostEditorPage() {
             slotProps={{ inputLabel: { shrink: true } }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setScheduleOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ px: 2.5, pb: 2 }}>
+          <Button onClick={() => setScheduleOpen(false)} size="small">Cancel</Button>
           <Button
             variant="contained"
             onClick={handleSchedule}
             disabled={!scheduledAt || actionLoading === 'schedule'}
+            size="small"
           >
             {actionLoading === 'schedule' ? <CircularProgress size={16} /> : 'Schedule'}
           </Button>

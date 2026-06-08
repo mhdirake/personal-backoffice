@@ -7,13 +7,10 @@ import {
   TableCell, TableBody, Chip, IconButton, Tooltip,
   CircularProgress, Alert, TableContainer, Paper,
 } from '@mui/material';
-import {
-  CheckCircleOutline, CancelOutlined, EditOutlined,
-  ScheduleOutlined,
-} from '@mui/icons-material';
+import { CheckCircleOutline, CancelOutlined, EditOutlined, ScheduleOutlined } from '@mui/icons-material';
 import api from '@/utils/api';
 
-const STATUS_TABS = ['pending', 'approved', 'scheduled', 'rejected'];
+const STATUS_TABS = ['pending', 'published', 'scheduled', 'rejected'];
 
 const CATEGORY_COLORS = {
   news_intelligence: 'info',
@@ -23,14 +20,10 @@ const CATEGORY_COLORS = {
 };
 
 function ScoreChip({ score }) {
-  const color = score >= 0.7 ? 'success' : score >= 0.5 ? 'warning' : 'default';
+  const n = parseFloat(score);
+  const color = n >= 0.7 ? 'success' : n >= 0.5 ? 'warning' : 'default';
   return (
-    <Chip
-      label={score?.toFixed(2)}
-      color={color}
-      size="small"
-      variant="outlined"
-    />
+    <Chip label={isNaN(n) ? '—' : n.toFixed(2)} color={color} size="small" variant="outlined" />
   );
 }
 
@@ -59,61 +52,73 @@ export default function PostsPage() {
     }
   }, [status]);
 
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
   const handleApprove = async (uuid) => {
     setActionLoading(uuid + '_approve');
-    try {
-      await api.patch(`/api/admin/posts/${uuid}/approve`);
-      fetchPosts();
-    } finally {
-      setActionLoading(null);
-    }
+    try { await api.patch(`/api/admin/posts/${uuid}/approve`); fetchPosts(); }
+    finally { setActionLoading(null); }
   };
 
   const handleReject = async (uuid) => {
     setActionLoading(uuid + '_reject');
-    try {
-      await api.patch(`/api/admin/posts/${uuid}/reject`);
-      fetchPosts();
-    } finally {
-      setActionLoading(null);
-    }
+    try { await api.patch(`/api/admin/posts/${uuid}/reject`); fetchPosts(); }
+    finally { setActionLoading(null); }
   };
 
   return (
     <Box>
-      <Box mb={3} display="flex" alignItems="center" justifyContent="space-between">
+      {/* Page header */}
+      <Box mb={3.5} display="flex" alignItems="flex-end" justifyContent="space-between">
         <Box>
-          <Typography variant="h5" fontWeight={700}>Posts</Typography>
-          <Typography variant="body2" color="text.secondary">{total} total in this status</Typography>
+          <Typography
+            variant="subtitle2"
+            sx={{ color: 'primary.main', mb: 0.5, fontFamily: 'var(--font-jetbrains)', letterSpacing: '0.1em' }}
+          >
+            CONTENT PIPELINE
+          </Typography>
+          <Typography variant="h4" fontWeight={700} sx={{ color: 'text.primary', letterSpacing: '-0.01em' }}>
+            Posts
+          </Typography>
         </Box>
+        <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'var(--font-jetbrains)' }}>
+          {total} in queue
+        </Typography>
       </Box>
 
-      <Tabs
-        value={tab}
-        onChange={(_, v) => setTab(v)}
-        sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
+      {/* Tabs */}
+      <Box
+        sx={{
+          background: 'rgba(255,255,255,0.03)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: '12px',
+          mb: 2.5,
+          px: 1,
+        }}
       >
-        {STATUS_TABS.map((s) => (
-          <Tab key={s} label={s} sx={{ textTransform: 'capitalize', fontSize: 13 }} />
-        ))}
-      </Tabs>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+          {STATUS_TABS.map((s) => (
+            <Tab key={s} label={s} sx={{ textTransform: 'capitalize' }} />
+          ))}
+        </Tabs>
+      </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2.5 }}>{error}</Alert>}
 
       {loading ? (
-        <Box display="flex" justifyContent="center" mt={6}>
-          <CircularProgress />
+        <Box display="flex" justifyContent="center" mt={8}>
+          <CircularProgress size={32} thickness={2} sx={{ color: 'primary.main' }} />
         </Box>
       ) : posts.length === 0 ? (
-        <Box mt={6} textAlign="center">
-          <Typography color="text.secondary">No {status} posts.</Typography>
+        <Box mt={8} textAlign="center">
+          <Typography sx={{ color: 'rgba(255,255,255,0.2)', fontSize: '13px', letterSpacing: '0.06em' }}>
+            NO {status.toUpperCase()} POSTS
+          </Typography>
         </Box>
       ) : (
-        <TableContainer component={Paper} sx={{ bgcolor: 'background.paper' }}>
+        <TableContainer component={Paper}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -134,7 +139,7 @@ export default function PostsPage() {
                   onClick={() => router.push(`/admin/posts/${post.uuid}`)}
                 >
                   <TableCell sx={{ maxWidth: 340 }}>
-                    <Typography variant="body2" noWrap>
+                    <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
                       {post.headline || '—'}
                     </Typography>
                   </TableCell>
@@ -144,62 +149,51 @@ export default function PostsPage() {
                       color={CATEGORY_COLORS[post.category] || 'default'}
                       size="small"
                       variant="outlined"
-                      sx={{ fontSize: 11 }}
                     />
                   </TableCell>
+                  <TableCell><ScoreChip score={post.relevanceScore} /></TableCell>
                   <TableCell>
-                    <ScoreChip score={post.relevanceScore} />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'var(--font-jetbrains)' }}>
                       {post.rawItem?.source?.name || '—'}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date(post.createdAt).toLocaleDateString()}
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'var(--font-jetbrains)' }}>
+                      {new Date(status === 'published' ? post.publishedAt || post.createdAt : post.createdAt).toLocaleDateString()}
                     </Typography>
                   </TableCell>
                   <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                     <Tooltip title="Edit">
-                      <IconButton
-                        size="small"
-                        onClick={() => router.push(`/admin/posts/${post.uuid}`)}
-                      >
+                      <IconButton size="small" onClick={() => router.push(`/admin/posts/${post.uuid}`)}>
                         <EditOutlined fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     {status === 'pending' && (
                       <>
-                        <Tooltip title="Approve">
+                        <Tooltip title="Approve & Publish">
                           <IconButton
-                            size="small"
-                            color="success"
+                            size="small" color="success"
                             disabled={actionLoading === post.uuid + '_approve'}
                             onClick={() => handleApprove(post.uuid)}
                           >
                             {actionLoading === post.uuid + '_approve'
-                              ? <CircularProgress size={16} />
+                              ? <CircularProgress size={14} />
                               : <CheckCircleOutline fontSize="small" />}
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Reject">
                           <IconButton
-                            size="small"
-                            color="error"
+                            size="small" color="error"
                             disabled={actionLoading === post.uuid + '_reject'}
                             onClick={() => handleReject(post.uuid)}
                           >
                             {actionLoading === post.uuid + '_reject'
-                              ? <CircularProgress size={16} />
+                              ? <CircularProgress size={14} />
                               : <CancelOutlined fontSize="small" />}
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Schedule">
-                          <IconButton
-                            size="small"
-                            onClick={() => router.push(`/admin/posts/${post.uuid}`)}
-                          >
+                          <IconButton size="small" onClick={() => router.push(`/admin/posts/${post.uuid}`)}>
                             <ScheduleOutlined fontSize="small" />
                           </IconButton>
                         </Tooltip>

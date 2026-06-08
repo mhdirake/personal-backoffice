@@ -31,11 +31,9 @@ export default function SourcesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
-
   const [form, setForm] = useState({ type: 'github_release', name: '', identifier: '' });
   const [formError, setFormError] = useState('');
   const [adding, setAdding] = useState(false);
-
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const fetchSources = useCallback(async () => {
@@ -51,17 +49,13 @@ export default function SourcesPage() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchSources();
-  }, [fetchSources]);
+  useEffect(() => { fetchSources(); }, [fetchSources]);
 
   const handleToggle = async (uuid) => {
     setActionLoading(uuid);
     try {
       await api.patch(`/api/admin/sources/${uuid}/toggle`);
-      setSources((prev) =>
-        prev.map((s) => s.uuid === uuid ? { ...s, active: !s.active } : s)
-      );
+      setSources((prev) => prev.map((s) => s.uuid === uuid ? { ...s, active: !s.active } : s));
     } finally {
       setActionLoading(null);
     }
@@ -102,9 +96,20 @@ export default function SourcesPage() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} mb={3}>Sources</Typography>
+      {/* Header */}
+      <Box mb={3.5}>
+        <Typography
+          variant="subtitle2"
+          sx={{ color: 'primary.main', mb: 0.5, fontFamily: 'var(--font-jetbrains)', letterSpacing: '0.1em' }}
+        >
+          INGESTION
+        </Typography>
+        <Typography variant="h4" fontWeight={700} sx={{ color: 'text.primary', letterSpacing: '-0.01em' }}>
+          Sources
+        </Typography>
+      </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2.5 }}>{error}</Alert>}
 
       {/* Add form */}
       <Box
@@ -116,11 +121,12 @@ export default function SourcesPage() {
           alignItems: 'flex-start',
           flexWrap: 'wrap',
           mb: 3,
-          p: 2,
-          bgcolor: 'background.paper',
-          borderRadius: 1,
-          border: '1px solid',
-          borderColor: 'divider',
+          p: 2.5,
+          background: 'rgba(255,255,255,0.03)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderRadius: '12px',
+          border: '1px solid rgba(255,255,255,0.07)',
         }}
       >
         <FormControl size="small" sx={{ minWidth: 160 }}>
@@ -159,24 +165,27 @@ export default function SourcesPage() {
         <Button
           type="submit"
           variant="contained"
-          startIcon={adding ? <CircularProgress size={16} color="inherit" /> : <AddOutlined />}
+          startIcon={adding ? <CircularProgress size={14} color="inherit" /> : <AddOutlined />}
           disabled={adding}
+          size="small"
           sx={{ mt: 0.25 }}
         >
-          Add
+          Add Source
         </Button>
       </Box>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" mt={6}>
-          <CircularProgress />
+        <Box display="flex" justifyContent="center" mt={8}>
+          <CircularProgress size={32} thickness={2} sx={{ color: 'primary.main' }} />
         </Box>
       ) : sources.length === 0 ? (
-        <Box mt={4} textAlign="center">
-          <Typography color="text.secondary">No sources yet. Add one above.</Typography>
+        <Box mt={8} textAlign="center">
+          <Typography sx={{ color: 'rgba(255,255,255,0.2)', fontSize: '13px', letterSpacing: '0.06em' }}>
+            NO SOURCES CONFIGURED
+          </Typography>
         </Box>
       ) : (
-        <TableContainer component={Paper} sx={{ bgcolor: 'background.paper' }}>
+        <TableContainer component={Paper}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -192,32 +201,28 @@ export default function SourcesPage() {
               {sources.map((source) => (
                 <TableRow key={source.uuid}>
                   <TableCell>
-                    <Typography variant="body2">{source.name}</Typography>
+                    <Typography variant="body2" fontWeight={500}>{source.name}</Typography>
                   </TableCell>
                   <TableCell>
                     <Chip
                       label={source.type.replace(/_/g, ' ')}
                       color={TYPE_COLORS[source.type] || 'default'}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontSize: 11 }}
+                      size="small" variant="outlined"
                     />
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'var(--font-jetbrains)' }}>
                       {source.identifier}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" color="text.secondary">
-                      {source.lastFetchedAt
-                        ? new Date(source.lastFetchedAt).toLocaleString()
-                        : 'Never'}
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'var(--font-jetbrains)' }}>
+                      {source.lastFetchedAt ? new Date(source.lastFetchedAt).toLocaleString() : 'Never'}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
                     {actionLoading === source.uuid ? (
-                      <CircularProgress size={18} />
+                      <CircularProgress size={16} />
                     ) : (
                       <Switch
                         checked={source.active}
@@ -229,11 +234,7 @@ export default function SourcesPage() {
                   </TableCell>
                   <TableCell align="right">
                     <Tooltip title="Delete">
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => setDeleteTarget(source.uuid)}
-                      >
+                      <IconButton size="small" color="error" onClick={() => setDeleteTarget(source.uuid)}>
                         <DeleteOutlined fontSize="small" />
                       </IconButton>
                     </Tooltip>
@@ -245,19 +246,16 @@ export default function SourcesPage() {
         </TableContainer>
       )}
 
-      {/* Delete confirm dialog */}
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Delete source?</DialogTitle>
+        <DialogTitle>Remove source?</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            This will remove the source. Raw items already fetched will not be deleted.
+          <DialogContentText sx={{ fontSize: '13px' }}>
+            Raw items already fetched will not be deleted.
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
-          <Button variant="contained" color="error" onClick={handleDelete}>
-            Delete
-          </Button>
+        <DialogActions sx={{ px: 2.5, pb: 2 }}>
+          <Button onClick={() => setDeleteTarget(null)} size="small">Cancel</Button>
+          <Button variant="contained" color="error" size="small" onClick={handleDelete}>Remove</Button>
         </DialogActions>
       </Dialog>
     </Box>
