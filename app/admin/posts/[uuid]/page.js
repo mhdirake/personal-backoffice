@@ -11,6 +11,7 @@ import {
   ArrowBackOutlined, CheckCircleOutline,
   CancelOutlined, ScheduleOutlined, SaveOutlined,
   OpenInNewOutlined, AutoAwesomeOutlined,
+  ContentCopyOutlined, LinkedIn,
 } from '@mui/icons-material';
 import api from '@/utils/api';
 
@@ -57,16 +58,32 @@ export default function PostEditorPage() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduledAt, setScheduledAt] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [generatingLinkedin, setGeneratingLinkedin] = useState(false);
+  const [translation, setTranslation] = useState(null);
+  const [generatingTranslation, setGeneratingTranslation] = useState(false);
+  const [savingTranslation, setSavingTranslation] = useState(false);
 
   useEffect(() => {
     api.get(`/api/admin/posts/${uuid}`)
       .then(({ data }) => {
         setPost(data.post);
-        const { headline, tldr, whyItMatters, impactAnalysis, recommendedAction, category } = data.post;
-        setForm({ headline, tldr, whyItMatters, impactAnalysis, recommendedAction, category });
+        const {
+          headline,
+          tldr,
+          whyItMatters,
+          impactAnalysis,
+          recommendedAction,
+          category,
+          linkedinDraft,
+        } = data.post;
+        setForm({ headline, tldr, whyItMatters, impactAnalysis, recommendedAction, category, linkedinDraft });
       })
       .catch(() => setError('Failed to load post.'))
       .finally(() => setLoading(false));
+
+    api.get(`/api/admin/posts/${uuid}/translations/fa`)
+      .then(({ data }) => setTranslation(data.translation))
+      .catch(() => {});
   }, [uuid]);
 
   const handleSave = async () => {
@@ -113,6 +130,61 @@ export default function PostEditorPage() {
       setError(err.response?.data?.message || 'Blog generation failed.');
       setGenerating(false);
     }
+  };
+
+  const handleGenerateLinkedin = async () => {
+    setGeneratingLinkedin(true);
+    setError('');
+    setSuccess('');
+    try {
+      const { data } = await api.post(`/api/admin/posts/${uuid}/generate-linkedin`);
+      setPost(data.post);
+      setForm((f) => ({ ...f, linkedinDraft: data.linkedinDraft }));
+      setSuccess(`LinkedIn draft generated (${data.charCount} chars).`);
+      setTimeout(() => setSuccess(''), 2500);
+    } catch (err) {
+      setError(err.response?.data?.message || 'LinkedIn draft generation failed.');
+    } finally {
+      setGeneratingLinkedin(false);
+    }
+  };
+
+  const handleGenerateTranslation = async () => {
+    setGeneratingTranslation(true);
+    setError('');
+    try {
+      const { data } = await api.post(`/api/admin/posts/${uuid}/translations/fa/generate`);
+      setTranslation(data.translation);
+      setSuccess('ترجمه فارسی ساخته شد.');
+      setTimeout(() => setSuccess(''), 2500);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Translation failed.');
+    } finally {
+      setGeneratingTranslation(false);
+    }
+  };
+
+  const handleSaveTranslation = async () => {
+    if (!translation) return;
+    setSavingTranslation(true);
+    setError('');
+    try {
+      const { data } = await api.patch(`/api/admin/posts/${uuid}/translations/fa`, translation);
+      setTranslation(data.translation);
+      setSuccess('ترجمه ذخیره شد.');
+      setTimeout(() => setSuccess(''), 2500);
+    } catch {
+      setError('Save translation failed.');
+    } finally {
+      setSavingTranslation(false);
+    }
+  };
+
+  const handleCopyLinkedin = async () => {
+    if (!form.linkedinDraft) return;
+    await navigator.clipboard.writeText(form.linkedinDraft);
+    setSuccess('LinkedIn draft copied.');
+    setTimeout(() => setSuccess(''), 2500);
   };
 
   if (loading) {
@@ -307,6 +379,122 @@ export default function PostEditorPage() {
               slotProps={{ inputLabel: { shrink: true } }}
             />
           ))}
+
+          {/* Persian Translation */}
+          <Box
+            sx={{
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: '10px',
+              p: 2,
+            }}
+          >
+            <Box display="flex" alignItems="center" justifyContent="space-between" gap={1.5} mb={2}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'rgba(255,255,255,0.35)',
+                  fontFamily: 'var(--font-jetbrains)',
+                  fontSize: '10px',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                نسخه فارسی
+              </Typography>
+              <Box display="flex" gap={1}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={generatingTranslation ? <CircularProgress size={14} color="inherit" /> : null}
+                  onClick={handleGenerateTranslation}
+                  disabled={generatingTranslation || savingTranslation}
+                >
+                  {generatingTranslation ? 'در حال ترجمه...' : translation ? 'ترجمه مجدد' : 'ترجمه'}
+                </Button>
+                {translation && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={savingTranslation ? <CircularProgress size={14} color="inherit" /> : <SaveOutlined />}
+                    onClick={handleSaveTranslation}
+                    disabled={savingTranslation || generatingTranslation}
+                  >
+                    ذخیره
+                  </Button>
+                )}
+              </Box>
+            </Box>
+
+            {translation ? (
+              <Stack spacing={2} sx={{ direction: 'rtl' }}>
+                {['headline', 'tldr', 'whyItMatters', 'impactAnalysis', 'recommendedAction'].map((field) => (
+                  <TextField
+                    key={field}
+                    label={field}
+                    value={translation[field] || ''}
+                    onChange={(e) => setTranslation((t) => ({ ...t, [field]: e.target.value }))}
+                    multiline={field !== 'headline'}
+                    minRows={field === 'headline' ? 1 : 3}
+                    maxRows={10}
+                    fullWidth
+                    size="small"
+                    slotProps={{ input: { style: { fontFamily: "'Noto Sans Arabic', sans-serif", direction: 'rtl' } }, inputLabel: { shrink: true } }}
+                  />
+                ))}
+              </Stack>
+            ) : (
+              <Typography sx={{ color: 'rgba(255,255,255,0.2)', fontSize: '12px', textAlign: 'center', py: 2 }}>
+                ترجمه‌ای ساخته نشده
+              </Typography>
+            )}
+          </Box>
+
+          <Box>
+            <Box display="flex" alignItems="center" justifyContent="space-between" gap={1.5} mb={1.25}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'rgba(255,255,255,0.35)',
+                  fontFamily: 'var(--font-jetbrains)',
+                  fontSize: '10px',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                LINKEDIN DRAFT
+              </Typography>
+              <Box display="flex" gap={1} flexWrap="wrap" justifyContent="flex-end">
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={generatingLinkedin ? <CircularProgress size={14} color="inherit" /> : <LinkedIn />}
+                  onClick={handleGenerateLinkedin}
+                  disabled={generatingLinkedin || saving || !!actionLoading}
+                >
+                  {generatingLinkedin ? 'Generating...' : 'Generate'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<ContentCopyOutlined />}
+                  onClick={handleCopyLinkedin}
+                  disabled={!form.linkedinDraft}
+                >
+                  Copy
+                </Button>
+              </Box>
+            </Box>
+            <TextField
+              label="LinkedIn post"
+              value={form.linkedinDraft || ''}
+              onChange={(e) => setForm((f) => ({ ...f, linkedinDraft: e.target.value }))}
+              multiline
+              minRows={8}
+              maxRows={18}
+              fullWidth
+              size="small"
+              helperText={`${(form.linkedinDraft || '').length} chars`}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Box>
         </Stack>
       </Box>
 

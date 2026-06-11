@@ -7,7 +7,7 @@ import {
   TableCell, TableBody, Chip, IconButton, Tooltip,
   CircularProgress, Alert, TableContainer, Paper,
 } from '@mui/material';
-import { CheckCircleOutline, CancelOutlined, EditOutlined, ScheduleOutlined } from '@mui/icons-material';
+import { CheckCircleOutline, CancelOutlined, EditOutlined, ScheduleOutlined, LinkedIn } from '@mui/icons-material';
 import api from '@/utils/api';
 
 const STATUS_TABS = ['pending', 'published', 'scheduled', 'rejected'];
@@ -123,10 +123,12 @@ export default function PostsPage() {
             <TableHead>
               <TableRow>
                 <TableCell>Headline</TableCell>
+                <TableCell>FA Summary</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell>Score</TableCell>
                 <TableCell>Source</TableCell>
                 <TableCell>Date</TableCell>
+                <TableCell></TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -138,10 +140,26 @@ export default function PostsPage() {
                   sx={{ cursor: 'pointer' }}
                   onClick={() => router.push(`/admin/posts/${post.uuid}`)}
                 >
-                  <TableCell sx={{ maxWidth: 340 }}>
+                  <TableCell sx={{ maxWidth: 300 }}>
                     <Typography variant="body2" noWrap sx={{ fontWeight: 500 }}>
                       {post.headline || '—'}
                     </Typography>
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 280 }}>
+                    <Typography variant="body2" noWrap sx={{ fontWeight: 400, color: 'text.secondary', mb: 0.4 }}>
+                      {post.tldr || '—'}
+                    </Typography>
+                    {post.translations?.[0] ? (
+                      <Typography
+                        variant="caption"
+                        noWrap
+                        sx={{ color: 'rgba(255,255,255,0.4)', display: 'block', direction: 'rtl', textAlign: 'right' }}
+                      >
+                        {post.translations[0].tldr}
+                      </Typography>
+                    ) : (
+                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.15)' }}>—</Typography>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Chip
@@ -158,9 +176,28 @@ export default function PostsPage() {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'var(--font-jetbrains)' }}>
-                      {new Date(status === 'published' ? post.publishedAt || post.createdAt : post.createdAt).toLocaleDateString()}
-                    </Typography>
+                    {(() => {
+                      const d = new Date(status === 'published' ? post.publishedAt || post.createdAt : post.createdAt);
+                      const shamsi = d.toLocaleDateString('en-US-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                      const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                      return (
+                        <Box>
+                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                            {shamsi}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-jetbrains)', display: 'block' }}>
+                            {time}
+                          </Typography>
+                        </Box>
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell>
+                    {post.linkedinDraft && (
+                      <Tooltip title="LinkedIn draft ready">
+                        <LinkedIn sx={{ fontSize: 16, color: '#0A66C2', verticalAlign: 'middle' }} />
+                      </Tooltip>
+                    )}
                   </TableCell>
                   <TableCell align="right" onClick={(e) => e.stopPropagation()}>
                     <Tooltip title="Edit">

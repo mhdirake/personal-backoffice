@@ -1,3 +1,6 @@
+@import url('../fonts/noto-sans-arabic.css');
+@import url('../fonts/noto-sans.css');
+
 :root {
   --glass-bg: rgba(255, 255, 255, 0.04);
   --glass-border: rgba(255, 255, 255, 0.07);
@@ -18,7 +21,6 @@ html, body {
 body {
   min-height: 100vh;
   background: #020617;
-  font-family: var(--font-outfit, 'Outfit', 'Helvetica Neue', sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -83,6 +85,10 @@ a {
   text-decoration: none;
 }
 
+[dir="rtl"], .fa-text {
+  font-family: 'Noto Sans Arabic', sans-serif;
+}
+
 /* Gradient text utility */
 .gradient-text {
   background: var(--brand-gradient);
@@ -105,4 +111,33 @@ a {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+p,
+a,
+body,
+span,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+b,
+ul,
+li,
+div,
+input,
+small,
+table,
+tbody,
+thead,
+th,
+td,
+tr,
+textarea,
+button,
+label,
+.title {
+  font-family: 'Noto Sans', 'Noto Sans Arabic', 'Helvetica Neue', sans-serif !important;
 }
