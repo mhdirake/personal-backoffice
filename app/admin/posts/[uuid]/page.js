@@ -75,8 +75,9 @@ export default function PostEditorPage() {
           recommendedAction,
           category,
           linkedinDraft,
+          coverImage,
         } = data.post;
-        setForm({ headline, tldr, whyItMatters, impactAnalysis, recommendedAction, category, linkedinDraft });
+        setForm({ headline, tldr, whyItMatters, impactAnalysis, recommendedAction, category, linkedinDraft, coverImage });
       })
       .catch(() => setError('Failed to load post.'))
       .finally(() => setLoading(false));
@@ -314,6 +315,51 @@ export default function PostEditorPage() {
         }}
       >
         <Stack spacing={2.5}>
+          {/* Cover image */}
+          <Box>
+            {form.coverImage ? (
+              <Box
+                component="img"
+                src={form.coverImage}
+                alt="Cover"
+                sx={{
+                  width: '100%',
+                  maxHeight: 220,
+                  objectFit: 'cover',
+                  borderRadius: '8px',
+                  mb: 1.25,
+                  display: 'block',
+                  border: '1px solid rgba(255,255,255,0.07)',
+                }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  width: '100%',
+                  height: 80,
+                  borderRadius: '8px',
+                  mb: 1.25,
+                  border: '1px dashed rgba(255,255,255,0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-jetbrains)', letterSpacing: '0.06em' }}>
+                  NO COVER IMAGE
+                </Typography>
+              </Box>
+            )}
+            <TextField
+              label="Cover Image URL"
+              value={form.coverImage || ''}
+              onChange={(e) => setForm((f) => ({ ...f, coverImage: e.target.value || null }))}
+              fullWidth
+              size="small"
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+          </Box>
+
           {/* Category selector */}
           <Box>
             <Typography

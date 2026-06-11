@@ -9,7 +9,7 @@ import {
   Alert, Dialog, DialogTitle, DialogContent,
   DialogContentText, DialogActions,
 } from '@mui/material';
-import { DeleteOutlined, AddOutlined } from '@mui/icons-material';
+import { DeleteOutlined, AddOutlined, SyncOutlined } from '@mui/icons-material';
 import api from '@/utils/api';
 
 const SOURCE_TYPES = ['github_release', 'rss', 'npm'];
@@ -35,6 +35,8 @@ export default function SourcesPage() {
   const [formError, setFormError] = useState('');
   const [adding, setAdding] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [fetchLoading, setFetchLoading] = useState(null);
+  const [fetchSuccess, setFetchSuccess] = useState(null);
 
   const fetchSources = useCallback(async () => {
     setLoading(true);
@@ -72,6 +74,20 @@ export default function SourcesPage() {
     } finally {
       setActionLoading(null);
       setDeleteTarget(null);
+    }
+  };
+
+  const handleFetch = async (uuid) => {
+    setFetchLoading(uuid);
+    setFetchSuccess(null);
+    try {
+      await api.post(`/api/admin/sources/${uuid}/fetch`);
+      setFetchSuccess(uuid);
+      setTimeout(() => setFetchSuccess(null), 3000);
+    } catch {
+      setError('Fetch failed.');
+    } finally {
+      setFetchLoading(null);
     }
   };
 
@@ -194,7 +210,7 @@ export default function SourcesPage() {
                 <TableCell>Identifier</TableCell>
                 <TableCell>Last Fetched</TableCell>
                 <TableCell align="center">Active</TableCell>
-                <TableCell align="right">Delete</TableCell>
+                <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -233,6 +249,18 @@ export default function SourcesPage() {
                     )}
                   </TableCell>
                   <TableCell align="right">
+                    <Tooltip title={fetchSuccess === source.uuid ? 'Queued!' : 'Fetch now'}>
+                      <IconButton
+                        size="small"
+                        color={fetchSuccess === source.uuid ? 'success' : 'default'}
+                        disabled={fetchLoading === source.uuid}
+                        onClick={() => handleFetch(source.uuid)}
+                      >
+                        {fetchLoading === source.uuid
+                          ? <CircularProgress size={14} />
+                          : <SyncOutlined fontSize="small" />}
+                      </IconButton>
+                    </Tooltip>
                     <Tooltip title="Delete">
                       <IconButton size="small" color="error" onClick={() => setDeleteTarget(source.uuid)}>
                         <DeleteOutlined fontSize="small" />

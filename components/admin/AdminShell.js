@@ -11,12 +11,15 @@ import {
   RssFeedOutlined,
   LogoutOutlined,
   AutoStoriesOutlined,
+  DashboardOutlined,
 } from '@mui/icons-material';
 import { setToken, clearToken } from '@/store/slices/authSlice';
+import JobMonitor from '@/components/admin/JobMonitor';
 
 const SIDEBAR_WIDTH = 228;
 
 const NAV_ITEMS = [
+  { label: 'Dashboard', href: '/admin/dashboard', icon: DashboardOutlined, desc: 'Analytics' },
   { label: 'Posts', href: '/admin/posts', icon: ArticleOutlined, desc: 'Curated content' },
   { label: 'Sources', href: '/admin/sources', icon: RssFeedOutlined, desc: 'Feed sources' },
   { label: 'Blog', href: '/admin/blog', icon: AutoStoriesOutlined, desc: 'Personal blog' },
@@ -256,6 +259,8 @@ export default function AdminShell({ children }) {
       >
         {children}
       </Box>
+
+      <JobMonitor />
     </Box>
   );
 }
