@@ -12,7 +12,7 @@ export const THEMES = {
   light: "light",
 };
 
-export const THEME_COOKIE = "devsignal-theme";
+export const THEME_COOKIE = "gistnex-theme";
 
 function ThemeSwitcherContextProvider({ children }) {
   const [theme, setThemeState] = useState(THEMES.dark);

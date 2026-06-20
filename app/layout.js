@@ -22,7 +22,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata = {
-  title: "DevSignal — Signal Over Noise",
+  title: "GistNex — Signal Over Noise",
   description: "Curated developer intelligence for the Next.js ecosystem.",
 };
 

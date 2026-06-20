@@ -1,7 +1,7 @@
 import AdminShell from '@/components/admin/AdminShell';
 
 export const metadata = {
-  title: 'DevSignal Admin',
+  title: 'GistNex Admin',
 };
 
 export default function AdminLayout({ children }) {
