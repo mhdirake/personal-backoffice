@@ -22,8 +22,14 @@ export default function BlogPage() {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [activeTag, setActiveTag] = useState('');
+  const [allTags, setAllTags] = useState([]);
 
   const status = STATUS_TABS[tab];
+
+  useEffect(() => {
+    api.get('/api/admin/blog-tags').then(({ data }) => setAllTags(data.tags || [])).catch(() => {});
+  }, []);
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
@@ -31,6 +37,7 @@ export default function BlogPage() {
     try {
       const params = { limit: 50 };
       if (status !== 'all') params.status = status;
+      if (activeTag) params.tag = activeTag;
       const { data } = await api.get('/api/admin/blog', { params });
       setPosts(data.posts);
       setTotal(data.total);
@@ -39,7 +46,7 @@ export default function BlogPage() {
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [status, activeTag]);
 
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
@@ -109,6 +116,30 @@ export default function BlogPage() {
           ))}
         </Tabs>
       </Box>
+
+      {allTags.length > 0 && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 2.5 }}>
+          <Chip
+            label="All"
+            size="small"
+            onClick={() => setActiveTag('')}
+            variant={activeTag === '' ? 'filled' : 'outlined'}
+            color={activeTag === '' ? 'primary' : 'default'}
+            sx={{ fontWeight: 600, fontSize: '11px' }}
+          />
+          {allTags.map((tag) => (
+            <Chip
+              key={tag}
+              label={`#${tag}`}
+              size="small"
+              onClick={() => setActiveTag(activeTag === tag ? '' : tag)}
+              variant={activeTag === tag ? 'filled' : 'outlined'}
+              color={activeTag === tag ? 'primary' : 'default'}
+              sx={{ fontSize: '11px' }}
+            />
+          ))}
+        </Box>
+      )}
 
       {error && <Alert severity="error" sx={{ mb: 2.5 }}>{error}</Alert>}
 
