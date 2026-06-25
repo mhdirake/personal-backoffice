@@ -12,6 +12,7 @@ import {
   LogoutOutlined,
   AutoStoriesOutlined,
   DashboardOutlined,
+  BugReportOutlined,
 } from '@mui/icons-material';
 import { setToken, clearToken } from '@/store/slices/authSlice';
 import JobMonitor from '@/components/admin/JobMonitor';
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { label: 'Posts', href: '/admin/posts', icon: ArticleOutlined, desc: 'Curated content' },
   { label: 'Sources', href: '/admin/sources', icon: RssFeedOutlined, desc: 'Feed sources' },
   { label: 'Blog', href: '/admin/blog', icon: AutoStoriesOutlined, desc: 'Personal blog' },
+  { label: 'Error Logs', href: '/admin/error-logs', icon: BugReportOutlined, desc: 'System errors' },
 ];
 
 export default function AdminShell({ children }) {
